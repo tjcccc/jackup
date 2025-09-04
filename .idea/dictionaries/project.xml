@@ -2,6 +2,7 @@
   <dictionary name="project">
     <words>
       <w>jackup</w>
+      <w>jackupignore</w>
     </words>
   </dictionary>
 </component>

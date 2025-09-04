@@ -1,16 +1,17 @@
+mod cli;
+mod commands;
+mod core;
+mod templates;
+
 use std::path::PathBuf;
 use clap::Parser;
+use anyhow::Result;
+use crate::cli::Cli;
 
-#[derive(Parser)]
-#[command(name = "jackup", version)]
-enum Commands {
-    Init { repo: PathBuf },
-    Run,
-    Snapshot { source: PathBuf, #[arg(long)] label: Option<String> },
-    List,
-    Extract { snapshot: String, destination: PathBuf },
-}
 
-fn main() {
-    println!("Hello, world!");
+fn main() -> Result<()> {
+    println!("jackup - A simple backup tool");
+    let cli = Cli::parse();
+    let ctx = core::Context::bootstrap()?;
+    commands::dispatch(cli, ctx);
 }
