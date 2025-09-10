@@ -3,7 +3,6 @@ use std::fs;
 use std::io::Write;
 use anyhow::{Error, Result};
 use serde::{Deserialize, Serialize};
-use uuid::{uuid, Uuid};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Source {
@@ -18,6 +17,7 @@ pub struct Source {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
     pub version: i8,
+    pub id: String,
     pub device: String,
     pub repository_path: String,
     pub sources: Vec<Source>,
@@ -35,6 +35,7 @@ impl Config {
 
         Ok(Self {
             version: config.version,
+            id: config.id,
             device: config.device,
             repository_path: config.repository_path,
             sources: config.sources,

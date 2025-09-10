@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+// use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -10,5 +10,5 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
-    Init { repo: PathBuf },
+    Init,
 }

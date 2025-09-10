@@ -1,16 +1,26 @@
-use std::fmt::format;
 use std::io::{self, Write};
+use std::path::PathBuf;
 use anyhow::Context;
-use crate::templates::{CONFIG_TEMPLATE, CONFIG_FILENAME, IGNORE_TEMPLATE, IGNORE_FILENAME};
+use uuid::{Uuid};
+use crate::templates::{CONFIG_FILENAME, IGNORE_FILENAME, IGNORE_TEMPLATE};
 use crate::core::config::Config;
 
 fn prompt_with_default(q: &str, default: &str) -> Result<String, io::Error> {
-    print!("{}: ", q);
+    print!("{q}");
     io::stdout().flush()?;
     let mut s = String::new();
     io::stdin().read_line(&mut s)?;
     let t = s.trim();
     Ok(if t.is_empty() { default.to_string() } else { t.to_string() })
+}
+
+fn expand_tilde(path: &str) -> anyhow::Result<PathBuf> {
+    if let Some(stripped) = path.strip_prefix("~/") {
+        let home_dir = home::home_dir().context("Could not determine home directory")?;
+        Ok(home_dir.join(stripped))
+    } else {
+        Ok(PathBuf::from(path))
+    }
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -25,13 +35,6 @@ pub fn run() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if ignore_path.exists() {
-        println!(".jackupignore file already exists at {:?}", ignore_path);
-    } else {
-        std::fs::write(&ignore_path, IGNORE_TEMPLATE)?;
-        println!("Created .jackupignore file at {:?}", ignore_path);
-    }
-
     // Get current computer device name
     let default_device = hostname::get()
         .ok()
@@ -39,12 +42,6 @@ pub fn run() -> anyhow::Result<()> {
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| "my_computer".to_string());
 
-    // Input device name
-    // print!("Enter the device name for this repository (default: {:?}): ", default_device);
-    // io::stdout().flush()?;
-    // let mut input_device_name = String::new();
-    // io::stdin().read_line(&mut input_device_name)?;
-    // let device_name = if input_device_name.is_empty() { default_device } else {input_device_name.trim().to_string()};
     let device_name = prompt_with_default(
         &format!("Enter the device name (default: {}): ", default_device),
         &default_device
@@ -61,15 +58,40 @@ pub fn run() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    println!("HOME from env: {:?}", std::env::var_os("HOME"));
+
+    // Create repository directory if it doesn't exist
+    let full_repo_path = expand_tilde(repo_path)?;
+    println!("full_repo_path: {}", full_repo_path.display());
+
+    if !full_repo_path.exists() {
+        std::fs::create_dir_all(&full_repo_path).with_context(|| format!("Creating repository directory at {}", full_repo_path.display()))?;
+        println!("Created repository directory at {}", full_repo_path.display());
+    } else {
+        println!("Repository directory already exists at {}", full_repo_path.display());
+        println!("Please make sure it is empty before proceeding.");
+    }
+
     let initial_config = Config {
         version: 1,
+        id: Uuid::new_v4().to_string(),
         device: device_name,
-        repository_path: repo_path.to_string(),
+        repository_path: full_repo_path.display().to_string(),
         sources: vec![],
     };
 
+    // Create the ignore file if it doesn't exist
     initial_config.save(&config_path)?;
     println!("Initialized new jackup repository with config at {:?}", config_path);
+
+    if ignore_path.exists() {
+        println!(".jackupignore file already exists at {:?}", ignore_path);
+    } else {
+        std::fs::write(&ignore_path, IGNORE_TEMPLATE)?;
+        println!("Created .jackupignore file at {:?}", ignore_path);
+    }
+
+    println!("Successfully initialized.");
 
     Ok(())
 }
