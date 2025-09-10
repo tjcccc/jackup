@@ -10,7 +10,6 @@ use crate::cli::Cli;
 
 
 fn main() -> Result<()> {
-    println!("jackup - A simple backup tool");
     let cli = Cli::parse();
     // let ctx = core::context::Context::bootstrap()?;
     commands::dispatch(cli.command)

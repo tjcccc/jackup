@@ -24,6 +24,7 @@ fn expand_tilde(path: &str) -> anyhow::Result<PathBuf> {
 }
 
 pub fn run() -> anyhow::Result<()> {
+    println!("jackup - A simple backup tool\n");
     let cwd = std::env::current_dir().context("Get current directory")?;
 
     let config_path = cwd.join(CONFIG_FILENAME);

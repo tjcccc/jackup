@@ -11,4 +11,5 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Command {
     Init,
+    Info
 }
