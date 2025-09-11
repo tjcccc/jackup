@@ -1,9 +1,11 @@
 use std::io::{self, Write};
+use std::fs;
 use std::path::PathBuf;
 use anyhow::Context;
 use uuid::{Uuid};
-use crate::templates::{CONFIG_FILENAME, IGNORE_FILENAME, IGNORE_TEMPLATE};
+use crate::templates::{CONFIG_FILENAME, IGNORE_FILENAME, IGNORE_TEMPLATE, WORKSPACE_DIRNAME, SNAPSHOTS_DIRNAME};
 use crate::core::config::Config;
+use crate::core::files::{get_application_path};
 
 fn prompt_with_default(q: &str, default: &str) -> Result<String, io::Error> {
     print!("{q}");
@@ -25,10 +27,12 @@ fn expand_tilde(path: &str) -> anyhow::Result<PathBuf> {
 
 pub fn run() -> anyhow::Result<()> {
     println!("jackup - A simple backup tool\n");
-    let cwd = std::env::current_dir().context("Get current directory")?;
+    // let cwd = std::env::current_dir().context("Get current directory")?;
+    // let cwd = std::env::current_exe()?.parent().context("Get the application directory")?.to_path_buf();
+    let exe_path = get_application_path()?;
 
-    let config_path = cwd.join(CONFIG_FILENAME);
-    let ignore_path = cwd.join(IGNORE_FILENAME);
+    let config_path = exe_path.join(CONFIG_FILENAME);
+    let ignore_path = exe_path.join(IGNORE_FILENAME);
 
     if config_path.exists() {
         println!("Config file already exists at {:}", config_path.display());
@@ -59,18 +63,38 @@ pub fn run() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    println!("HOME from env: {:?}", std::env::var_os("HOME"));
+    // println!("HOME from env: {:?}", std::env::var_os("HOME"));
 
     // Create repository directory if it doesn't exist
     let full_repo_path = expand_tilde(repo_path)?;
-    println!("full_repo_path: {}", full_repo_path.display());
+    // println!("full_repo_path: {}", full_repo_path.display());
 
     if !full_repo_path.exists() {
-        std::fs::create_dir_all(&full_repo_path).with_context(|| format!("Creating repository directory at {}", full_repo_path.display()))?;
+        fs::create_dir_all(&full_repo_path).with_context(|| format!("Creating repository directory at {}", full_repo_path.display()))?;
         println!("Created repository directory at {}", full_repo_path.display());
     } else {
         println!("Repository directory already exists at {}", full_repo_path.display());
         println!("Please make sure it is empty before proceeding.");
+    }
+
+    // Create workspace directories and snapshots directory
+
+    let workspace_path = full_repo_path.join(WORKSPACE_DIRNAME);
+    let snapshots_path = full_repo_path.join(SNAPSHOTS_DIRNAME);
+
+    if workspace_path.exists() {
+        println!("Workspace directories already exist. Initialization aborted to prevent overwriting existing data.");
+        return Ok(());
+    }
+
+    fs::create_dir_all(&workspace_path)?;
+    println!("Created workspace directory at {}", workspace_path.display());
+
+    if !snapshots_path.exists() {
+        fs::create_dir_all(&snapshots_path)?;
+        println!("Created snapshots directory at {}", snapshots_path.display());
+    } else {
+        println!("Snapshots directory already exists at {}", snapshots_path.display());
     }
 
     let initial_config = Config {
@@ -88,7 +112,7 @@ pub fn run() -> anyhow::Result<()> {
     if ignore_path.exists() {
         println!(".jackupignore file already exists at {:?}", ignore_path);
     } else {
-        std::fs::write(&ignore_path, IGNORE_TEMPLATE)?;
+        fs::write(&ignore_path, IGNORE_TEMPLATE)?;
         println!("Created .jackupignore file at {:?}", ignore_path);
     }
 
