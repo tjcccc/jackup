@@ -1,11 +1,10 @@
 use std::io::{self, Write};
 use std::fs;
-use std::path::PathBuf;
 use anyhow::Context;
 use uuid::{Uuid};
 use crate::templates::{CONFIG_FILENAME, IGNORE_FILENAME, IGNORE_TEMPLATE, WORKSPACE_DIRNAME, SNAPSHOTS_DIRNAME};
 use crate::core::config::Config;
-use crate::core::files::{get_application_path};
+use crate::core::paths::{expand_tilde, get_user_config_dir};
 
 fn prompt_with_default(q: &str, default: &str) -> Result<String, io::Error> {
     print!("{q}");
@@ -16,23 +15,24 @@ fn prompt_with_default(q: &str, default: &str) -> Result<String, io::Error> {
     Ok(if t.is_empty() { default.to_string() } else { t.to_string() })
 }
 
-fn expand_tilde(path: &str) -> anyhow::Result<PathBuf> {
-    if let Some(stripped) = path.strip_prefix("~/") {
-        let home_dir = home::home_dir().context("Could not determine home directory")?;
-        Ok(home_dir.join(stripped))
-    } else {
-        Ok(PathBuf::from(path))
-    }
-}
+// fn expand_tilde(path: &str) -> anyhow::Result<PathBuf> {
+//     if let Some(stripped) = path.strip_prefix("~/") {
+//         let home_dir = home::home_dir().context("Could not determine home directory")?;
+//         Ok(home_dir.join(stripped))
+//     } else {
+//         Ok(PathBuf::from(path))
+//     }
+// }
 
 pub fn run() -> anyhow::Result<()> {
     println!("jackup - A simple backup tool\n");
     // let cwd = std::env::current_dir().context("Get current directory")?;
     // let cwd = std::env::current_exe()?.parent().context("Get the application directory")?.to_path_buf();
-    let exe_path = get_application_path()?;
+    // let exe_path = get_application_path()?;
+    let config_dir_path = get_user_config_dir()?;
 
-    let config_path = exe_path.join(CONFIG_FILENAME);
-    let ignore_path = exe_path.join(IGNORE_FILENAME);
+    let config_path = config_dir_path.join(CONFIG_FILENAME);
+    let ignore_path = config_dir_path.join(IGNORE_FILENAME);
 
     if config_path.exists() {
         println!("Config file already exists at {:}", config_path.display());
