@@ -2,17 +2,29 @@ use std::io::{self, Write};
 use std::fs;
 use anyhow::Context;
 use uuid::{Uuid};
+use rustyline::{DefaultEditor, error::ReadlineError};
 use crate::templates::{CONFIG_FILENAME, IGNORE_FILENAME, IGNORE_TEMPLATE, WORKSPACE_DIRNAME, SNAPSHOTS_DIRNAME};
 use crate::core::config::Config;
 use crate::core::paths::{expand_tilde, get_user_config_dir};
 
-fn prompt_with_default(q: &str, default: &str) -> Result<String, io::Error> {
-    print!("{q}");
-    io::stdout().flush()?;
-    let mut s = String::new();
-    io::stdin().read_line(&mut s)?;
-    let t = s.trim();
-    Ok(if t.is_empty() { default.to_string() } else { t.to_string() })
+fn ask_for_input(q: &str, default: &str) -> Result<String, io::Error> {
+    let mut rl = DefaultEditor::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    let prompt = format!("{q}");
+
+    match rl.readline(&prompt) {
+        Ok(line) => {
+            let input = line.trim();
+            Ok(if input.is_empty() { default.to_string() } else { input.to_string() })
+        },
+        Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => Ok(default.to_string()),
+        Err(err) => Err(io::Error::new(io::ErrorKind::Other, err)),
+    }
+    // print!("{q}");
+    // io::stdout().flush()?;
+    // let mut s = String::new();
+    // io::stdin().read_line(&mut s)?;
+    // let t = s.trim();
+    // Ok(if t.is_empty() { default.to_string() } else { t.to_string() })
 }
 
 // fn expand_tilde(path: &str) -> anyhow::Result<PathBuf> {
@@ -47,17 +59,25 @@ pub fn run() -> anyhow::Result<()> {
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| "my_computer".to_string());
 
-    let device_name = prompt_with_default(
+    let device_name = ask_for_input(
         &format!("Enter the device name (default: {}): ", default_device),
         &default_device
     )?;
 
     // Input repository path
-    print!("Enter the repository path: ");
-    io::stdout().flush()?;
-    let mut input_repo_path = String::new();
-    io::stdin().read_line(&mut input_repo_path)?;
-    let repo_path = input_repo_path.trim();
+    // print!("Enter the repository path: ");
+    // io::stdout().flush()?;
+    // let mut input_repo_path = String::new();
+    // io::stdin().read_line(&mut input_repo_path)?;
+    // let repo_path = input_repo_path.trim();
+    // if repo_path.is_empty() {
+    //     println!("Repository path cannot be empty. Initialization aborted.");
+    //     return Ok(());
+    // }
+    let repo_path = ask_for_input(
+        "Enter the repository path: ",
+        ""
+    )?;
     if repo_path.is_empty() {
         println!("Repository path cannot be empty. Initialization aborted.");
         return Ok(());
@@ -66,7 +86,7 @@ pub fn run() -> anyhow::Result<()> {
     // println!("HOME from env: {:?}", std::env::var_os("HOME"));
 
     // Create repository directory if it doesn't exist
-    let full_repo_path = expand_tilde(repo_path)?;
+    let full_repo_path = expand_tilde(&*repo_path)?;
     // println!("full_repo_path: {}", full_repo_path.display());
 
     if !full_repo_path.exists() {
