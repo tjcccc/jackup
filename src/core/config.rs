@@ -54,13 +54,20 @@ impl Config {
         let tmp = path.with_extension("tmp");
         let toml_content = toml::to_string_pretty(self)?;
 
-        {
+        // Write to temp file
+        let result = (|| {
             let mut file = fs::File::create(&tmp)?;
             file.write_all(toml_content.as_bytes())?;
             file.sync_all()?;
+            fs::rename(&tmp, path)?;
+            Ok(())
+        })();
+
+        if result.is_err() && tmp.exists() {
+            let _ = fs::remove_file(&tmp);
         }
-        fs::rename(&tmp, path)?;
-        Ok(())
+
+        result
     }
 
     // pub fn add_source(&mut self, path_string: &str, name: Option<&str>, excludes: &[String]) -> Result<()> {

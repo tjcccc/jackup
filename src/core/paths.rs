@@ -1,6 +1,6 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 // use std::env;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use crate::templates::{CONFIG_DIRNAME, CONFIG_FILENAME, IGNORE_FILENAME};
 
 pub fn expand_tilde(path: &str) -> anyhow::Result<PathBuf> {
@@ -45,9 +45,11 @@ pub fn get_config_path() -> Result<PathBuf> {
     match config_path.exists() {
         true => Ok(config_path),
         false => {
-            eprintln!("Config file not found at {:}", config_path.display());
-            eprintln!("Please run 'jackup init' to create a configuration file.");
-            Err(anyhow!("Config file not exists"))
+            Err(anyhow!(
+                "Config file not found at {}. Please run 'jackup init' to create a configuration file.",
+                config_path.display()
+            ))
+            
         }
     }
 }
@@ -55,4 +57,25 @@ pub fn get_config_path() -> Result<PathBuf> {
 pub fn get_ignore_path() -> Result<PathBuf> {
     let app_path = get_user_config_dir()?;
     Ok(app_path.join(IGNORE_FILENAME))
+}
+
+pub fn validate_repo_path(path: &Path) -> Result<PathBuf> {
+    // Canonicalize to resolve symlinks and get absolute path
+    let canonical = path.canonicalize()
+        .with_context(|| format!("Invalid or inaccessible path: {}", path.display()))?;
+    
+    // Prevent writing to system directories
+    let forbidden_prefixes = ["/etc", "/sys", "/proc", "/dev", "/boot"];
+    for prefix in &forbidden_prefixes {
+        if canonical.starts_with(prefix) {
+            bail!("Cannot use system directory '{}' as repository", prefix);
+        }
+    }
+    
+    // Ensure it's not root
+    if canonical == Path::new("/") {
+        bail!("Cannot use root directory as repository");
+    }
+    
+    Ok(canonical)
 }

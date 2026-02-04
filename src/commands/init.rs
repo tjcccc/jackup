@@ -1,11 +1,11 @@
-use std::io::{self, Write};
+use std::io::{self};
 use std::fs;
 use anyhow::Context;
 use uuid::{Uuid};
 use rustyline::{DefaultEditor, error::ReadlineError};
 use crate::templates::{CONFIG_FILENAME, IGNORE_FILENAME, IGNORE_TEMPLATE, WORKSPACE_DIRNAME, SNAPSHOTS_DIRNAME};
 use crate::core::config::Config;
-use crate::core::paths::{expand_tilde, get_user_config_dir};
+use crate::core::paths::{expand_tilde, get_user_config_dir, validate_repo_path};
 
 fn ask_for_input(q: &str, default: &str) -> Result<String, io::Error> {
     let mut rl = DefaultEditor::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
@@ -47,8 +47,8 @@ pub fn run() -> anyhow::Result<()> {
     let ignore_path = config_dir_path.join(IGNORE_FILENAME);
 
     if config_path.exists() {
-        println!("Config file already exists at {:}", config_path.display());
-        println!("Initialization skipped.");
+        log::warn!("Config file already exists at {:}", config_path.display());
+        log::info!("Initialization skipped.");
         return Ok(());
     }
 
@@ -79,7 +79,7 @@ pub fn run() -> anyhow::Result<()> {
         ""
     )?;
     if repo_path.is_empty() {
-        println!("Repository path cannot be empty. Initialization aborted.");
+        log::warn!("Repository path cannot be empty. Initialization aborted.");
         return Ok(());
     }
 
@@ -87,14 +87,15 @@ pub fn run() -> anyhow::Result<()> {
 
     // Create repository directory if it doesn't exist
     let full_repo_path = expand_tilde(&*repo_path)?;
+    let validated_path = validate_repo_path(&full_repo_path)?;
     // println!("full_repo_path: {}", full_repo_path.display());
 
-    if !full_repo_path.exists() {
+    if !validated_path.exists() && !full_repo_path.exists() {
         fs::create_dir_all(&full_repo_path).with_context(|| format!("Creating repository directory at {}", full_repo_path.display()))?;
-        println!("Created repository directory at {}", full_repo_path.display());
+        log::info!("Created repository directory at {}", full_repo_path.display());
     } else {
-        println!("Repository directory already exists at {}", full_repo_path.display());
-        println!("Please make sure it is empty before proceeding.");
+        log::warn!("Repository directory already exists at {}", full_repo_path.display());
+        log::warn!("Please make sure it is empty before proceeding.");
     }
 
     // Create workspace directories and snapshots directory
@@ -103,18 +104,18 @@ pub fn run() -> anyhow::Result<()> {
     let snapshots_path = full_repo_path.join(SNAPSHOTS_DIRNAME);
 
     if workspace_path.exists() {
-        println!("Workspace directories already exist. Initialization aborted to prevent overwriting existing data.");
+        log::warn!("Workspace directories already exist. Initialization aborted to prevent overwriting existing data.");
         return Ok(());
     }
 
     fs::create_dir_all(&workspace_path)?;
-    println!("Created workspace directory at {}", workspace_path.display());
+    log::info!("Created workspace directory at {}", workspace_path.display());
 
     if !snapshots_path.exists() {
         fs::create_dir_all(&snapshots_path)?;
-        println!("Created snapshots directory at {}", snapshots_path.display());
+        log::info!("Created snapshots directory at {}", snapshots_path.display());
     } else {
-        println!("Snapshots directory already exists at {}", snapshots_path.display());
+        log::warn!("Snapshots directory already exists at {}", snapshots_path.display());
     }
 
     let initial_config = Config {
@@ -127,16 +128,16 @@ pub fn run() -> anyhow::Result<()> {
 
     // Create the ignore file if it doesn't exist
     initial_config.save(&config_path)?;
-    println!("Initialized new jackup repository with config at {:?}", config_path);
+    log::info!("Initialized new jackup repository with config at {:?}", config_path);
 
     if ignore_path.exists() {
-        println!(".jackupignore file already exists at {:?}", ignore_path);
+        log::warn!(".jackupignore file already exists at {:?}", ignore_path);
     } else {
         fs::write(&ignore_path, IGNORE_TEMPLATE)?;
-        println!("Created .jackupignore file at {:?}", ignore_path);
+        log::info!("Created .jackupignore file at {:?}", ignore_path);
     }
 
-    println!("Successfully initialized.");
+    log::info!("Successfully initialized.");
 
     Ok(())
 }

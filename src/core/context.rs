@@ -1,6 +1,6 @@
 // use std::path::{PathBuf};
 use time::{OffsetDateTime};
-use anyhow::{ Result};
+use anyhow::{anyhow, Result};
 use crate::core::config::{Config};
 use crate::templates::CONFIG_FILENAME;
 
@@ -22,7 +22,7 @@ impl Context {
     pub fn bootstrap() -> Result<Self> {
         let cwd = std::env::current_dir()?;
         let config_path = cwd.join(CONFIG_FILENAME);
-        let config = Config::load(config_path.to_str().unwrap())?;
+        let config = Config::load(config_path.to_str().ok_or_else(|| anyhow!("Failed to load configuration."))?)?;
         Ok(Self::new(config))
     }
 }
