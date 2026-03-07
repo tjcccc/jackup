@@ -17,11 +17,20 @@ pub fn run() -> anyhow::Result<()> {
         println!("    Name: {}", source.name);
         println!("    Path: {}", source.path.display());
         println!("    Enabled: {}", source.enabled);
-        if !source.excludes.is_empty() {
-            println!("    Excludes:");
-            for exclude in &source.excludes {
+        if let Some(follow_symlinks) = source.follow_symlinks {
+            println!("    Follow Symlinks: {}", follow_symlinks);
+        }
+        if !source.exclude.is_empty() {
+            println!("    Exclude:");
+            for exclude in &source.exclude {
                 println!("      - {}", exclude);
             }
+        }
+        if let Some(created_at) = &source.created_at {
+            println!("    Created At: {}", created_at);
+        }
+        if let Some(updated_at) = &source.updated_at {
+            println!("    Updated At: {}", updated_at);
         }
     }
 

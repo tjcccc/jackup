@@ -10,8 +10,14 @@ pub struct Source {
     pub path: PathBuf,
     pub name: String,
     pub enabled: bool,
-    #[serde(default)]
-    pub excludes: Vec<String>,
+    #[serde(default, alias = "excludes")]
+    pub exclude: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub follow_symlinks: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

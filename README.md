@@ -5,6 +5,7 @@ A simple backup tool for creating and managing file snapshots.
 ## Features
 
 - **Initialize repository** - Create a new backup repository with configurable storage location
+- **Add backup sources** - Register source directories in config with optional per-source excludes
 - **Configuration management** - Store backup settings in `~/.jackup/config.toml`
 - **Path validation** - Supports `~` expansion and prevents accidental use of system directories
 - **Ignore patterns** - Custom `.jackupignore` file to exclude files from backups
@@ -50,6 +51,23 @@ Displays current configuration including:
 - Repository path
 - Configured sources (if any)
 
+### Add a source directory
+
+```bash
+jackup add <path> [--name <label>] [--exclude <pattern>] --follow-symlinks=<bool>
+```
+
+Example:
+
+```bash
+jackup add ~/Pictures --name "my photos" --exclude "*.tmp" --exclude "build/" --follow-symlinks=false
+```
+
+Options:
+- `-n, --name <NAME>` set display name
+- `-e, --exclude <PATTERN>` repeat to add excludes for this source
+- `--follow-symlinks=<bool>` follow symlinks for this source (default: `false`)
+
 ## Configuration
 
 Config file location: `~/.jackup/config.toml`
@@ -60,6 +78,20 @@ id = "your-uuid"
 device = "your-device-name"
 repository_path = "/path/to/repo"
 sources = []
+```
+
+Source entries are stored as:
+
+```toml
+[[sources]]
+id = "uuid"
+path = "/absolute/path"
+name = "source name"
+enabled = true
+follow_symlinks = false
+exclude = ["*.tmp", "build/"]
+created_at = "2026-03-07T12:34:56Z"
+updated_at = "2026-03-07T12:34:56Z"
 ```
 
 Ignore file location: `~/.jackup/.jackupignore`
@@ -73,7 +105,7 @@ node_modules
 
 ## Roadmap
 
-- [ ] Add source directories to backup
+- [x] Add source directories to backup
 - [ ] Create snapshots
 - [ ] Restore from snapshots
 - [ ] List snapshot history
