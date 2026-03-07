@@ -130,6 +130,19 @@ Thumbs.db
 node_modules
 ```
 
+## Release Checklist
+
+1. Update features/docs in `README.md` and `DEVLOG.md`.
+2. Update [CHANGELOG.md](./CHANGELOG.md) with a new `0.x.x` version and release date (`YYYY-MM-DD`).
+3. Bump version in `Cargo.toml`.
+4. Run verification:
+   - `cargo fmt`
+   - `cargo build`
+   - `cargo test` (when tests exist)
+5. Commit release changes.
+6. Create a git tag, for example: `git tag v0.3.0`.
+7. Push commit and tag: `git push && git push --tags`.
+
 ## Roadmap
 
 - [x] Add source directories to backup
