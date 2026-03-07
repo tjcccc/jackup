@@ -1,4 +1,4 @@
-use clap::{ArgAction, Args, Parser, Subcommand};
+use clap::{ArgAction, Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[command(
@@ -23,6 +23,8 @@ pub enum Command {
     Init,
     Info,
     Add(AddArgs),
+    #[command(alias = "ls")]
+    List(ListArgs),
 }
 
 #[derive(Args)]
@@ -38,4 +40,21 @@ pub struct AddArgs {
     /// Follow symlinks while scanning this source
     #[arg(long, default_value_t = false, action = ArgAction::Set)]
     pub follow_symlinks: bool,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
+pub enum SortField {
+    Name,
+    Created,
+    Updated,
+}
+
+#[derive(Args)]
+pub struct ListArgs {
+    /// Show all source fields
+    #[arg(long, visible_alias = "full")]
+    pub verbose: bool,
+    /// Sort sources by field
+    #[arg(long, value_enum, default_value_t = SortField::Name)]
+    pub sort: SortField,
 }

@@ -68,6 +68,33 @@ Options:
 - `-e, --exclude <PATTERN>` repeat to add excludes for this source
 - `--follow-symlinks=<bool>` follow symlinks for this source (default: `false`)
 
+### List sources
+
+```bash
+jackup list
+jackup ls
+```
+
+Default output is a table with:
+- `Name`
+- `Path`
+- `Enabled`
+
+Verbose/full output:
+
+```bash
+jackup list --verbose
+jackup list --full
+```
+
+Sorting:
+
+```bash
+jackup list --sort name
+jackup list --sort created
+jackup list --sort updated
+```
+
 ## Configuration
 
 Config file location: `~/.jackup/config.toml`
