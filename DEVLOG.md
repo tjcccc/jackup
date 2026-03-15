@@ -1,5 +1,71 @@
 # DEVLOG
 
+## 2026-03-15
+
+### Summary
+Built the full backup engine: `jackup run`, `jackup status`, `jackup peek`, `jackup withdraw`, `jackup verify`, and source management commands (`remove`, `enable`, `disable`, `update`). Added shared formatting utilities and a `Manifest` type for incremental backup state.
+
+### Implemented
+
+- **`jackup run [--dry-run] [--force]`**
+  - Walks each enabled source with `walkdir`, respects per-source `exclude` patterns and global `.jackupignore` using `globset` (gitignore semantics: patterns without `/` match at any depth)
+  - Compares mtime + size against manifest to skip unchanged sources
+  - Streams files directly into `<uuid>.tar.zst` via `tar::Builder<zstd::Encoder<BufWriter<File>>>`; no staging directory required
+  - Atomic snapshot write: temp file + rename
+  - Progress logged every 10% for large sources
+  - Manifest saved atomically after successful archive write
+
+- **`jackup status`** — table of all sources: last backed-up time, file count, archive size on disk
+
+- **`jackup peek <source>`** — lists files in a source's backup from its manifest (no decompression)
+
+- **`jackup withdraw <target> [--source <name>] [--dry-run]`**
+  - Two-phase: build extraction plan from manifests (fast, no I/O), then extract from archives
+  - Conflict resolution: if two sources map to the same output path, the newer mtime wins
+  - Path mapping: Unix absolute → strip leading `/`; Windows `C:\...` → `c/...`
+
+- **`jackup verify [--source <name>]`**
+  - Opens each `.tar.zst`, reads all entry headers, checks completeness and size against manifest
+  - Full streaming decompression — catches corrupt compressed data
+  - Exits non-zero if any source fails
+
+- **`jackup remove <source> [--purge] [-y]`** — removes source from config; `--purge` deletes snapshot + manifest
+
+- **`jackup enable/disable <source>`** — toggles `enabled` flag, updates `updated_at`
+
+- **`jackup update <source> [--name] [--exclude] [--follow-symlinks]`** — updates source metadata; `--exclude` replaces the entire exclude list
+
+- **`src/core/manifest.rs`** — `Manifest` + `FileEntry`; serializes as `[[files]]` TOML array; atomic save
+
+- **`src/core/format.rs`** — shared `format_size`, `format_datetime`, `format_date_unix`, `truncate`
+
+- **`src/core/config.rs`** — added `find_source(&str)` and `find_source_mut(&str)` helpers
+
+### Repo structure
+```
+workspace/
+  <source-uuid>.manifest.toml   ← per-source incremental state
+snapshots/
+  <source-uuid>.tar.zst         ← compressed archive (one per source)
+```
+
+### Dependencies added
+- `walkdir` — directory traversal with early directory pruning
+- `tar` — tar archive read/write
+- `zstd` — zstd compression/decompression
+- `globset` — glob pattern matching for excludes
+
+### Verified
+- `cargo build` passes with zero new warnings.
+- All commands visible in `jackup --help`.
+
+### Next Candidates
+- Snapshot history (keep N previous archives per source).
+- Tests for manifest serialization, path mapping, conflict resolution.
+- Progress bar (instead of log-line checkpoints) for large sources.
+
+---
+
 ## 2026-03-07
 
 ### Summary

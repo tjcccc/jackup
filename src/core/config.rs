@@ -76,9 +76,13 @@ impl Config {
         result
     }
 
-    // pub fn add_source(&mut self, path_string: &str, name: Option<&str>, excludes: &[String]) -> Result<()> {
-    //     let new_source = Source {
-    //         id: uuid::Uuid::
-    //     }
-    // }
+    pub fn find_source(&self, query: &str) -> Option<&Source> {
+        let q = query.to_lowercase();
+        self.sources.iter().find(|s| s.name.to_lowercase() == q || s.id.starts_with(&q))
+    }
+
+    pub fn find_source_mut(&mut self, query: &str) -> Option<&mut Source> {
+        let q = query.to_lowercase();
+        self.sources.iter_mut().find(|s| s.name.to_lowercase() == q || s.id.starts_with(&q))
+    }
 }

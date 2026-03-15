@@ -1,115 +1,164 @@
 # jackup
 
-A simple backup tool for creating and managing file snapshots.
+A simple, personal backup tool. Backs up source directories into compressed snapshots (`.tar.zst`) and lets you extract them to any target path when you need them.
 
 ## Features
 
-- **Initialize repository** - Create a new backup repository with configurable storage location
-- **Add backup sources** - Register source directories in config with optional per-source excludes
-- **Configuration management** - Store backup settings in `~/.jackup/config.toml`
-- **Path validation** - Supports `~` expansion and prevents accidental use of system directories
-- **Ignore patterns** - Custom `.jackupignore` file to exclude files from backups
+- Add source directories with per-source exclude patterns
+- Incremental detection — only re-archives sources where files have changed
+- Compressed snapshots via zstd (one `.tar.zst` per source)
+- Cross-OS path recovery — handles both Unix and Windows source paths on extraction
+- Conflict resolution on extract — newer file wins when two sources share a path
 
 ## Installation
 
-```bash
-cargo install jackup
-```
-
-Or build from source:
+Build from source:
 
 ```bash
 cargo build --release
 ```
 
+> **Note:** `cargo install jackup` is not available yet — not published to crates.io.
+
 ## Usage
 
-### Initialize a new repository
+### Initialize a repository
 
 ```bash
 jackup init
 ```
 
-This will:
-1. Ask for a device name (defaults to your hostname)
-2. Ask for a repository path where snapshots will be stored
-3. Create the necessary directory structure:
-   - `<repo_path>/workspace/` - Working directory for backups
-   - `<repo_path>/snapshots/` - Storage for backup snapshots
-4. Create config file at `~/.jackup/config.toml`
-5. Create `.jackupignore` file at `~/.jackup/.jackupignore`
+Prompts for a device name and a repository path. Creates:
+- `<repo>/workspace/` — manifest files (per-run state)
+- `<repo>/snapshots/` — compressed backup archives
+- `~/.jackup/config.toml` — configuration
+- `~/.jackup/.jackupignore` — global ignore patterns
 
-### View configuration
+---
+
+### Source management
+
+```bash
+jackup add <path> [--name <label>] [--exclude <pattern>] [--follow-symlinks=<bool>]
+```
+
+Registers a source directory. Options:
+- `-n, --name` — display name (defaults to folder basename)
+- `-e, --exclude` — glob pattern to exclude; repeatable
+- `--follow-symlinks` — follow symlinks (default: `false`)
+
+```bash
+jackup remove <source> [--purge] [-y]
+```
+
+Removes a source from config. `--purge` also deletes its snapshot and manifest. `-y` skips the confirmation prompt.
+
+```bash
+jackup enable <source>
+jackup disable <source>
+```
+
+Toggles whether a source is included in `jackup run`.
+
+```bash
+jackup update <source> [--name <label>] [--exclude <pattern>] [--follow-symlinks=<bool>]
+```
+
+Updates a source's metadata. `--exclude` (repeatable) replaces the entire exclude list.
+
+---
+
+### Viewing sources and status
+
+```bash
+jackup list [--verbose] [--sort name|created|updated]
+jackup ls                   # alias
+```
+
+Lists configured sources. `--verbose` shows all fields including ID, excludes, and timestamps.
 
 ```bash
 jackup info
 ```
 
-Displays current configuration including:
-- Jackup ID
-- Device name
-- Repository path
-- Configured sources (if any)
-
-### Add a source directory
+Shows global configuration (device name, repository path, all sources).
 
 ```bash
-jackup add <path> [--name <label>] [--exclude <pattern>] --follow-symlinks=<bool>
+jackup status
 ```
 
-Example:
+Shows backup health for every source: last backed-up time, file count, and archive size on disk. Sources that have never been backed up show `(never)`.
 
 ```bash
-jackup add ~/Pictures --name "my photos" --exclude "*.tmp" --exclude "build/" --follow-symlinks=false
+jackup peek <source>
 ```
+
+Lists all files inside a source's latest backup (reads from the manifest — no decompression).
+
+---
+
+### Running backups
+
+```bash
+jackup run [--dry-run] [--force]
+```
+
+Backs up all enabled sources. For each source:
+1. Compares current files against the manifest (mtime + size)
+2. If nothing changed, skips the source
+3. If changed, archives all files into `<repo>/snapshots/<uuid>.tar.zst` and updates the manifest
 
 Options:
-- `-n, --name <NAME>` set display name
-- `-e, --exclude <PATTERN>` repeat to add excludes for this source
-- `--follow-symlinks=<bool>` follow symlinks for this source (default: `false`)
+- `--dry-run` — show what would be backed up without writing
+- `--force` — skip change detection and always re-archive
 
-### List sources
+---
 
-```bash
-jackup list
-jackup ls
-```
-
-Default output is a table with:
-- `Name`
-- `Path`
-- `Enabled`
-
-Verbose/full output:
+### Extracting backups
 
 ```bash
-jackup list --verbose
-jackup list --full
+jackup withdraw <target> [--source <name>] [--dry-run]
 ```
 
-Sorting:
+Extracts backup files to `<target>`, preserving original path structure:
+
+| Source path | Extracted to |
+|---|---|
+| `/user/jack/photos` | `<target>/user/jack/photos/...` |
+| `C:\game\saves` | `<target>/c/game/saves/...` |
+
+When multiple sources share an output path, the file with the newer mtime wins.
+
+Options:
+- `-s, --source` — extract only one source (name or ID prefix)
+- `--dry-run` — preview without writing
+
+---
+
+### Verifying backups
 
 ```bash
-jackup list --sort name
-jackup list --sort created
-jackup list --sort updated
+jackup verify [--source <name>]
 ```
+
+Opens each `.tar.zst` and checks:
+- All files listed in the manifest are present in the archive
+- File sizes in the archive match the manifest
+
+Exits with a non-zero status if any source fails. Run this after `jackup run` on critical backups.
+
+---
 
 ## Configuration
 
-Config file location: `~/.jackup/config.toml`
+Config file: `~/.jackup/config.toml`
 
 ```toml
 version = 1
 id = "your-uuid"
 device = "your-device-name"
 repository_path = "/path/to/repo"
-sources = []
-```
 
-Source entries are stored as:
-
-```toml
 [[sources]]
 id = "uuid"
 path = "/absolute/path"
@@ -117,36 +166,39 @@ name = "source name"
 enabled = true
 follow_symlinks = false
 exclude = ["*.tmp", "build/"]
-created_at = "2026-03-07T12:34:56Z"
-updated_at = "2026-03-07T12:34:56Z"
+created_at = "2026-03-15T00:00:00Z"
+updated_at = "2026-03-15T00:00:00Z"
 ```
 
-Ignore file location: `~/.jackup/.jackupignore`
+Ignore file: `~/.jackup/.jackupignore`
 
-Add patterns (one per line) to exclude from backups, e.g.:
 ```
 *.DS_Store
 Thumbs.db
 node_modules
 ```
 
+Patterns without a `/` match at any depth (e.g. `node_modules` excludes any directory with that name).
+
+---
+
 ## Release Checklist
 
-1. Update features/docs in `README.md` and `DEVLOG.md`.
-2. Update [CHANGELOG.md](./CHANGELOG.md) with a new `0.x.x` version and release date (`YYYY-MM-DD`).
+1. Update `README.md` and `DEVLOG.md`.
+2. Update `CHANGELOG.md` with version and date.
 3. Bump version in `Cargo.toml`.
-4. Run verification:
-   - `cargo fmt`
-   - `cargo build`
-   - `cargo test` (when tests exist)
-5. Commit release changes.
-6. Create a git tag, for example: `git tag v0.3.0`.
-7. Push commit and tag: `git push && git push --tags`.
+4. Run: `cargo fmt && cargo build && cargo test`
+5. Commit, tag, and push: `git tag v0.x.x && git push && git push --tags`
 
 ## Roadmap
 
-- [x] Add source directories to backup
-- [ ] Create snapshots
-- [ ] Restore from snapshots
-- [ ] List snapshot history
-- [ ] Verify backup integrity
+- [x] Initialize repository
+- [x] Add / remove / enable / disable / update source directories
+- [x] List sources with sorting and verbose output
+- [x] Run backups with incremental change detection
+- [x] View backup status and file listings
+- [x] Extract backups with cross-OS path mapping
+- [x] Verify archive integrity against manifests
+- [ ] Snapshot history — keep N previous archives per source for rollback
+- [ ] Restore to original paths (for non-system files)
+- [ ] Tests

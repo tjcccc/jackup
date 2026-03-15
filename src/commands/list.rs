@@ -4,6 +4,7 @@ use time::format_description::well_known::Rfc3339;
 
 use crate::cli::{ListArgs, SortField};
 use crate::core::config::{Config, Source};
+use crate::core::format::truncate;
 use crate::core::paths::get_config_path;
 
 const DEFAULT_PATH_WIDTH: usize = 60;
@@ -173,20 +174,3 @@ fn friendly_time(value: &Option<String>) -> String {
     }
 }
 
-fn truncate(input: &str, max_len: usize) -> String {
-    if input.chars().count() <= max_len {
-        return input.to_string();
-    }
-    if max_len <= 3 {
-        return ".".repeat(max_len);
-    }
-    let mut out = String::new();
-    for (i, ch) in input.chars().enumerate() {
-        if i >= max_len - 3 {
-            break;
-        }
-        out.push(ch);
-    }
-    out.push_str("...");
-    out
-}
