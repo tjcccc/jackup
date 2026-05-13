@@ -7,6 +7,7 @@ Prepared the existing `1.0.0` crate for crates.io publishing without changing th
 
 ### Implemented
 - Added crates.io package metadata to `Cargo.toml`.
+- Updated README installation instructions for crates.io.
 - Removed local OS/editor files from the published package by ignoring `.DS_Store` and `.idea/`.
 - Removed unused `core::context` code that produced dead-code warnings.
 - Ran rustfmt across the project.

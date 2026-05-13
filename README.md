@@ -12,13 +12,17 @@ A simple, personal backup tool. Backs up source directories into compressed snap
 
 ## Installation
 
+Install from crates.io:
+
+```bash
+cargo install jackup
+```
+
 Build from source:
 
 ```bash
 cargo build --release
 ```
-
-> **Note:** `cargo install jackup` is not available yet — not published to crates.io.
 
 ## Usage
 
