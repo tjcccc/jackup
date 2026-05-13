@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 use uuid::Uuid;
@@ -15,9 +15,12 @@ pub fn run(args: AddArgs) -> anyhow::Result<()> {
     let mut config = Config::load(config_path_string)?;
 
     let source_input_path = expand_tilde(&args.path)?;
-    let source_path = source_input_path
-        .canonicalize()
-        .with_context(|| format!("Invalid or inaccessible source path: {}", source_input_path.display()))?;
+    let source_path = source_input_path.canonicalize().with_context(|| {
+        format!(
+            "Invalid or inaccessible source path: {}",
+            source_input_path.display()
+        )
+    })?;
 
     if !source_path.is_dir() {
         bail!("Source path must be a directory: {}", source_path.display());
@@ -51,6 +54,10 @@ pub fn run(args: AddArgs) -> anyhow::Result<()> {
     });
 
     config.save(&config_path)?;
-    log::info!("Added source '{}' at {}", source_name, source_path.display());
+    log::info!(
+        "Added source '{}' at {}",
+        source_name,
+        source_path.display()
+    );
     Ok(())
 }

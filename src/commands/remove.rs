@@ -20,10 +20,19 @@ pub fn run(args: RemoveArgs) -> Result<()> {
                 args.source
             )
         })?;
-        (source.id.clone(), source.name.clone(), source.path.display().to_string())
+        (
+            source.id.clone(),
+            source.name.clone(),
+            source.path.display().to_string(),
+        )
     };
 
-    if !args.yes && !confirm(&format!("Remove source '{}' ({})?", source_name, source_path_display))? {
+    if !args.yes
+        && !confirm(&format!(
+            "Remove source '{}' ({})?",
+            source_name, source_path_display
+        ))?
+    {
         println!("Aborted.");
         return Ok(());
     }
@@ -34,13 +43,16 @@ pub fn run(args: RemoveArgs) -> Result<()> {
 
     if args.purge {
         let repo_path = PathBuf::from(&config.repository_path);
-        let snapshot = repo_path.join(SNAPSHOTS_DIRNAME).join(format!("{}.tar.zst", source_id));
-        let manifest = repo_path.join(WORKSPACE_DIRNAME).join(format!("{}.manifest.toml", source_id));
+        let snapshot = repo_path
+            .join(SNAPSHOTS_DIRNAME)
+            .join(format!("{}.tar.zst", source_id));
+        let manifest = repo_path
+            .join(WORKSPACE_DIRNAME)
+            .join(format!("{}.manifest.toml", source_id));
 
         for path in [&snapshot, &manifest] {
             if path.exists() {
-                fs::remove_file(path)
-                    .with_context(|| format!("Removing {}", path.display()))?;
+                fs::remove_file(path).with_context(|| format!("Removing {}", path.display()))?;
                 log::info!("Deleted {}", path.display());
             }
         }

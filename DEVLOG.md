@@ -1,5 +1,24 @@
 # DEVLOG
 
+## 2026-05-13
+
+### Summary
+Prepared the existing `1.0.0` crate for crates.io publishing without changing the version.
+
+### Implemented
+- Added crates.io package metadata to `Cargo.toml`.
+- Removed local OS/editor files from the published package by ignoring `.DS_Store` and `.idea/`.
+- Removed unused `core::context` code that produced dead-code warnings.
+- Ran rustfmt across the project.
+
+### Verified
+- `cargo fmt --check` passes.
+- `cargo test` passes.
+- `cargo package --list --allow-dirty` excludes `.DS_Store` and `.idea/`.
+- `cargo publish --dry-run --allow-dirty` passes.
+
+---
+
 ## 2026-03-15
 
 ### Summary

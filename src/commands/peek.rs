@@ -26,7 +26,9 @@ pub fn run(args: PeekArgs) -> Result<()> {
         })?;
 
     let repo_path = PathBuf::from(&config.repository_path);
-    let manifest_path = repo_path.join(WORKSPACE_DIRNAME).join(format!("{}.manifest.toml", source.id));
+    let manifest_path = repo_path
+        .join(WORKSPACE_DIRNAME)
+        .join(format!("{}.manifest.toml", source.id));
     let manifest = Manifest::load(&manifest_path)?;
 
     println!("Source:  {} ({})", source.name, source.path.display());
@@ -65,8 +67,11 @@ pub fn run(args: PeekArgs) -> Result<()> {
 
     println!(
         "  {:<path_w$}  {:>size_w$}  {}",
-        "Path", "Size", "Modified",
-        path_w = path_w, size_w = size_w
+        "Path",
+        "Size",
+        "Modified",
+        path_w = path_w,
+        size_w = size_w
     );
     println!("  {}", "-".repeat(path_w + size_w + "Modified".len() + 4));
 

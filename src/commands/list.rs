@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 
@@ -35,7 +35,9 @@ pub fn run(args: ListArgs) -> anyhow::Result<()> {
 
 fn sort_sources(sources: &mut [&Source], sort: SortField) {
     match sort {
-        SortField::Name => sources.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
+        SortField::Name => {
+            sources.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+        }
         SortField::Created => sources.sort_by(|a, b| a.created_at.cmp(&b.created_at)),
         SortField::Updated => sources.sort_by(|a, b| a.updated_at.cmp(&b.updated_at)),
     }
@@ -173,4 +175,3 @@ fn friendly_time(value: &Option<String>) -> String {
         None => "-".to_string(),
     }
 }
-

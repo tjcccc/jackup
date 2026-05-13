@@ -1,11 +1,13 @@
-use std::io::{self};
-use std::fs;
-use anyhow::Context;
-use uuid::{Uuid};
-use rustyline::{DefaultEditor, error::ReadlineError};
-use crate::templates::{CONFIG_FILENAME, IGNORE_FILENAME, IGNORE_TEMPLATE, WORKSPACE_DIRNAME, SNAPSHOTS_DIRNAME};
 use crate::core::config::Config;
 use crate::core::paths::{expand_tilde, get_user_config_dir, validate_repo_path};
+use crate::templates::{
+    CONFIG_FILENAME, IGNORE_FILENAME, IGNORE_TEMPLATE, SNAPSHOTS_DIRNAME, WORKSPACE_DIRNAME,
+};
+use anyhow::Context;
+use rustyline::{DefaultEditor, error::ReadlineError};
+use std::fs;
+use std::io::{self};
+use uuid::Uuid;
 
 fn ask_for_input(q: &str, default: &str) -> Result<String, io::Error> {
     let mut rl = DefaultEditor::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
@@ -14,8 +16,12 @@ fn ask_for_input(q: &str, default: &str) -> Result<String, io::Error> {
     match rl.readline(&prompt) {
         Ok(line) => {
             let input = line.trim();
-            Ok(if input.is_empty() { default.to_string() } else { input.to_string() })
-        },
+            Ok(if input.is_empty() {
+                default.to_string()
+            } else {
+                input.to_string()
+            })
+        }
         Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => Ok(default.to_string()),
         Err(err) => Err(io::Error::new(io::ErrorKind::Other, err)),
     }
@@ -61,7 +67,7 @@ pub fn run() -> anyhow::Result<()> {
 
     let device_name = ask_for_input(
         &format!("Enter the device name (default: {}): ", default_device),
-        &default_device
+        &default_device,
     )?;
 
     // Input repository path
@@ -74,10 +80,7 @@ pub fn run() -> anyhow::Result<()> {
     //     println!("Repository path cannot be empty. Initialization aborted.");
     //     return Ok(());
     // }
-    let repo_path = ask_for_input(
-        "Enter the repository path: ",
-        ""
-    )?;
+    let repo_path = ask_for_input("Enter the repository path: ", "")?;
     if repo_path.is_empty() {
         log::warn!("Repository path cannot be empty. Initialization aborted.");
         return Ok(());
@@ -91,10 +94,21 @@ pub fn run() -> anyhow::Result<()> {
     // println!("full_repo_path: {}", full_repo_path.display());
 
     if !validated_path.exists() && !full_repo_path.exists() {
-        fs::create_dir_all(&full_repo_path).with_context(|| format!("Creating repository directory at {}", full_repo_path.display()))?;
-        log::info!("Created repository directory at {}", full_repo_path.display());
+        fs::create_dir_all(&full_repo_path).with_context(|| {
+            format!(
+                "Creating repository directory at {}",
+                full_repo_path.display()
+            )
+        })?;
+        log::info!(
+            "Created repository directory at {}",
+            full_repo_path.display()
+        );
     } else {
-        log::warn!("Repository directory already exists at {}", full_repo_path.display());
+        log::warn!(
+            "Repository directory already exists at {}",
+            full_repo_path.display()
+        );
         log::warn!("Please make sure it is empty before proceeding.");
     }
 
@@ -104,18 +118,29 @@ pub fn run() -> anyhow::Result<()> {
     let snapshots_path = full_repo_path.join(SNAPSHOTS_DIRNAME);
 
     if workspace_path.exists() {
-        log::warn!("Workspace directories already exist. Initialization aborted to prevent overwriting existing data.");
+        log::warn!(
+            "Workspace directories already exist. Initialization aborted to prevent overwriting existing data."
+        );
         return Ok(());
     }
 
     fs::create_dir_all(&workspace_path)?;
-    log::info!("Created workspace directory at {}", workspace_path.display());
+    log::info!(
+        "Created workspace directory at {}",
+        workspace_path.display()
+    );
 
     if !snapshots_path.exists() {
         fs::create_dir_all(&snapshots_path)?;
-        log::info!("Created snapshots directory at {}", snapshots_path.display());
+        log::info!(
+            "Created snapshots directory at {}",
+            snapshots_path.display()
+        );
     } else {
-        log::warn!("Snapshots directory already exists at {}", snapshots_path.display());
+        log::warn!(
+            "Snapshots directory already exists at {}",
+            snapshots_path.display()
+        );
     }
 
     let initial_config = Config {
@@ -128,7 +153,10 @@ pub fn run() -> anyhow::Result<()> {
 
     // Create the ignore file if it doesn't exist
     initial_config.save(&config_path)?;
-    log::info!("Initialized new jackup repository with config at {:?}", config_path);
+    log::info!(
+        "Initialized new jackup repository with config at {:?}",
+        config_path
+    );
 
     if ignore_path.exists() {
         log::warn!(".jackupignore file already exists at {:?}", ignore_path);

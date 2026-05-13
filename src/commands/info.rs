@@ -1,10 +1,14 @@
-use anyhow::{anyhow, Context};
 use crate::core::config::Config;
-use crate::core::paths::{get_config_path};
+use crate::core::paths::get_config_path;
+use anyhow::{Context, anyhow};
 
 pub fn run() -> anyhow::Result<()> {
     let config_path = get_config_path().context("Get config file")?;
-    let config = Config::load(config_path.to_str().ok_or_else(|| anyhow!("Failed to load configuration."))?)?;
+    let config = Config::load(
+        config_path
+            .to_str()
+            .ok_or_else(|| anyhow!("Failed to load configuration."))?,
+    )?;
     // println!("Configuration Information:");
     // println!("--------------------------");
     // println!("Version: {}", config.version);

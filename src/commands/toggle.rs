@@ -20,7 +20,11 @@ pub fn run(args: ToggleArgs, enabled: bool) -> Result<()> {
     })?;
 
     if source.enabled == enabled {
-        let state = if enabled { "already enabled" } else { "already disabled" };
+        let state = if enabled {
+            "already enabled"
+        } else {
+            "already disabled"
+        };
         log::info!("Source '{}' is {}.", source.name, state);
         return Ok(());
     }

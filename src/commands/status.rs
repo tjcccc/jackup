@@ -58,23 +58,60 @@ pub fn run() -> Result<()> {
         })
         .collect();
 
-    let name_w = rows.iter().map(|r| r.name.len()).max().unwrap_or(0).max("Name".len());
-    let last_w = rows.iter().map(|r| r.last_run.len()).max().unwrap_or(0).max("Last Backed Up".len());
-    let file_w = rows.iter().map(|r| r.file_count.len()).max().unwrap_or(0).max("Files".len());
-    let size_w = rows.iter().map(|r| r.archive_size.len()).max().unwrap_or(0).max("Archive".len());
+    let name_w = rows
+        .iter()
+        .map(|r| r.name.len())
+        .max()
+        .unwrap_or(0)
+        .max("Name".len());
+    let last_w = rows
+        .iter()
+        .map(|r| r.last_run.len())
+        .max()
+        .unwrap_or(0)
+        .max("Last Backed Up".len());
+    let file_w = rows
+        .iter()
+        .map(|r| r.file_count.len())
+        .max()
+        .unwrap_or(0)
+        .max("Files".len());
+    let size_w = rows
+        .iter()
+        .map(|r| r.archive_size.len())
+        .max()
+        .unwrap_or(0)
+        .max("Archive".len());
 
     println!(
         "{:<name_w$}  {:<last_w$}  {:>file_w$}  {:>size_w$}  {}",
-        "Name", "Last Backed Up", "Files", "Archive", "Enabled",
-        name_w = name_w, last_w = last_w, file_w = file_w, size_w = size_w
+        "Name",
+        "Last Backed Up",
+        "Files",
+        "Archive",
+        "Enabled",
+        name_w = name_w,
+        last_w = last_w,
+        file_w = file_w,
+        size_w = size_w
     );
-    println!("{}", "-".repeat(name_w + last_w + file_w + size_w + "Enabled".len() + 8));
+    println!(
+        "{}",
+        "-".repeat(name_w + last_w + file_w + size_w + "Enabled".len() + 8)
+    );
 
     for row in &rows {
         println!(
             "{:<name_w$}  {:<last_w$}  {:>file_w$}  {:>size_w$}  {}",
-            row.name, row.last_run, row.file_count, row.archive_size, row.enabled,
-            name_w = name_w, last_w = last_w, file_w = file_w, size_w = size_w
+            row.name,
+            row.last_run,
+            row.file_count,
+            row.archive_size,
+            row.enabled,
+            name_w = name_w,
+            last_w = last_w,
+            file_w = file_w,
+            size_w = size_w
         );
     }
 

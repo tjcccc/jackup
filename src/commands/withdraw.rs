@@ -1,5 +1,5 @@
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::fs;
 use std::io::{self, BufReader};
 use std::path::{Path, PathBuf};
@@ -74,11 +74,17 @@ pub fn run(args: WithdrawArgs) -> Result<()> {
                 Entry::Occupied(mut e) => {
                     conflict_count += 1;
                     if file.mtime > e.get().mtime {
-                        *e.get_mut() = PlanEntry { source_id: source.id.clone(), mtime: file.mtime };
+                        *e.get_mut() = PlanEntry {
+                            source_id: source.id.clone(),
+                            mtime: file.mtime,
+                        };
                     }
                 }
                 Entry::Vacant(e) => {
-                    e.insert(PlanEntry { source_id: source.id.clone(), mtime: file.mtime });
+                    e.insert(PlanEntry {
+                        source_id: source.id.clone(),
+                        mtime: file.mtime,
+                    });
                 }
             }
         }
@@ -90,9 +96,16 @@ pub fn run(args: WithdrawArgs) -> Result<()> {
     }
 
     if args.dry_run {
-        println!("Dry run: {} files would be extracted to {}", plan.len(), target.display());
+        println!(
+            "Dry run: {} files would be extracted to {}",
+            plan.len(),
+            target.display()
+        );
         if conflict_count > 0 {
-            println!("  {} conflict(s) would be resolved by keeping the newer file", conflict_count);
+            println!(
+                "  {} conflict(s) would be resolved by keeping the newer file",
+                conflict_count
+            );
         }
         return Ok(());
     }
@@ -115,8 +128,8 @@ pub fn run(args: WithdrawArgs) -> Result<()> {
 
         let file = fs::File::open(&snapshot_path)
             .with_context(|| format!("Opening snapshot for '{}'", source.name))?;
-        let decoder = zstd::Decoder::new(BufReader::new(file))
-            .context("Initializing zstd decoder")?;
+        let decoder =
+            zstd::Decoder::new(BufReader::new(file)).context("Initializing zstd decoder")?;
         let mut archive = tar::Archive::new(decoder);
 
         for entry in archive.entries().context("Reading archive entries")? {
@@ -124,7 +137,9 @@ pub fn run(args: WithdrawArgs) -> Result<()> {
             let entry_path = entry.path().context("Reading entry path")?.into_owned();
             let output_rel = mapped_base.join(&entry_path);
 
-            let won = plan.get(&output_rel).map_or(false, |e| e.source_id == source.id);
+            let won = plan
+                .get(&output_rel)
+                .map_or(false, |e| e.source_id == source.id);
             if !won {
                 continue;
             }
@@ -147,9 +162,17 @@ pub fn run(args: WithdrawArgs) -> Result<()> {
         log::info!("[{}] Done", source.name);
     }
 
-    println!("Withdrawn {} files ({}) to {}", extracted, format_size(extracted_bytes), target.display());
+    println!(
+        "Withdrawn {} files ({}) to {}",
+        extracted,
+        format_size(extracted_bytes),
+        target.display()
+    );
     if conflict_count > 0 {
-        println!("  {} conflict(s) resolved — newer file kept in each case", conflict_count);
+        println!(
+            "  {} conflict(s) resolved — newer file kept in each case",
+            conflict_count
+        );
     }
 
     Ok(())

@@ -12,8 +12,13 @@ use crate::core::paths::get_config_path;
 use crate::templates::{SNAPSHOTS_DIRNAME, WORKSPACE_DIRNAME};
 
 enum VerifyResult {
-    Ok { file_count: usize },
-    Failed { missing: usize, size_mismatch: usize },
+    Ok {
+        file_count: usize,
+    },
+    Failed {
+        missing: usize,
+        size_mismatch: usize,
+    },
     NeverBacked,
     SnapshotMissing,
 }
@@ -70,17 +75,27 @@ pub fn run(args: VerifyArgs) -> Result<()> {
                 log::error!("[{}] FAIL — snapshot file missing", source.name);
                 fail_count += 1;
             }
-            VerifyResult::Failed { missing, size_mismatch } => {
+            VerifyResult::Failed {
+                missing,
+                size_mismatch,
+            } => {
                 log::error!(
                     "[{}] FAIL — {} missing, {} size mismatch(es)",
-                    source.name, missing, size_mismatch
+                    source.name,
+                    missing,
+                    size_mismatch
                 );
                 fail_count += 1;
             }
         }
     }
 
-    println!("\nVerified {} source(s): {} OK, {} FAILED", ok_count + fail_count, ok_count, fail_count);
+    println!(
+        "\nVerified {} source(s): {} OK, {} FAILED",
+        ok_count + fail_count,
+        ok_count,
+        fail_count
+    );
 
     if fail_count > 0 {
         anyhow::bail!("Verification failed for {} source(s).", fail_count);
@@ -105,17 +120,18 @@ fn verify_source(
     }
 
     // Build lookup: rel_path -> expected_size
-    let expected: HashMap<String, u64> =
-        manifest.files.iter().map(|f| (f.path.clone(), f.size)).collect();
-    let mut found: HashMap<String, bool> =
-        expected.keys().map(|k| (k.clone(), false)).collect();
+    let expected: HashMap<String, u64> = manifest
+        .files
+        .iter()
+        .map(|f| (f.path.clone(), f.size))
+        .collect();
+    let mut found: HashMap<String, bool> = expected.keys().map(|k| (k.clone(), false)).collect();
 
     let mut size_mismatch = 0usize;
 
     let file = fs::File::open(snapshot_path)
         .with_context(|| format!("Opening snapshot for '{}'", source.name))?;
-    let decoder = zstd::Decoder::new(BufReader::new(file))
-        .context("Initializing zstd decoder")?;
+    let decoder = zstd::Decoder::new(BufReader::new(file)).context("Initializing zstd decoder")?;
     let mut archive = tar::Archive::new(decoder);
 
     for entry in archive.entries().context("Reading archive entries")? {
@@ -130,7 +146,10 @@ fn verify_source(
                 size_mismatch += 1;
                 log::warn!(
                     "[{}] Size mismatch: {} (expected {} B, got {} B)",
-                    source.name, path.display(), expected_size, archive_size
+                    source.name,
+                    path.display(),
+                    expected_size,
+                    archive_size
                 );
             }
         }
@@ -140,8 +159,13 @@ fn verify_source(
     let missing = found.values().filter(|&&v| !v).count();
 
     if missing == 0 && size_mismatch == 0 {
-        Ok(VerifyResult::Ok { file_count: expected.len() })
+        Ok(VerifyResult::Ok {
+            file_count: expected.len(),
+        })
     } else {
-        Ok(VerifyResult::Failed { missing, size_mismatch })
+        Ok(VerifyResult::Failed {
+            missing,
+            size_mismatch,
+        })
     }
 }

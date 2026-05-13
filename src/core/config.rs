@@ -1,8 +1,8 @@
-use std::path::{Path, PathBuf};
-use std::fs;
-use std::io::Write;
 use anyhow::{Error, Result};
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Source {
@@ -33,7 +33,10 @@ impl Config {
     pub fn load(path_string: &str) -> Result<Self> {
         let path = PathBuf::from(path_string);
         if !path.exists() {
-            return Err(Error::msg(format!("Config file not found at path: {:?}", path)));
+            return Err(Error::msg(format!(
+                "Config file not found at path: {:?}",
+                path
+            )));
         }
 
         let toml_content = fs::read_to_string(path)?;
@@ -50,13 +53,16 @@ impl Config {
 
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let path = path.as_ref();
-        
+
         if let Some(parent) = path.parent() {
             if !parent.exists() {
-                return Err(Error::msg(format!("Config directory not found at path: {:?}", parent.display())));
+                return Err(Error::msg(format!(
+                    "Config directory not found at path: {:?}",
+                    parent.display()
+                )));
             }
         }
-        
+
         let tmp = path.with_extension("tmp");
         let toml_content = toml::to_string_pretty(self)?;
 
@@ -78,11 +84,15 @@ impl Config {
 
     pub fn find_source(&self, query: &str) -> Option<&Source> {
         let q = query.to_lowercase();
-        self.sources.iter().find(|s| s.name.to_lowercase() == q || s.id.starts_with(&q))
+        self.sources
+            .iter()
+            .find(|s| s.name.to_lowercase() == q || s.id.starts_with(&q))
     }
 
     pub fn find_source_mut(&mut self, query: &str) -> Option<&mut Source> {
         let q = query.to_lowercase();
-        self.sources.iter_mut().find(|s| s.name.to_lowercase() == q || s.id.starts_with(&q))
+        self.sources
+            .iter_mut()
+            .find(|s| s.name.to_lowercase() == q || s.id.starts_with(&q))
     }
 }

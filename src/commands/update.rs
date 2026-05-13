@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 

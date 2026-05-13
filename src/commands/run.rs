@@ -53,12 +53,28 @@ pub fn run(args: RunArgs) -> Result<()> {
 
     for source in enabled_sources {
         let label = &source.name;
-        match backup_source(source, &snapshots_path, &manifests_path, &global_ignores, args.dry_run, args.force) {
+        match backup_source(
+            source,
+            &snapshots_path,
+            &manifests_path,
+            &global_ignores,
+            args.dry_run,
+            args.force,
+        ) {
             Ok(BackupResult::Updated { file_count, bytes }) => {
                 if args.dry_run {
-                    log::info!("[{}] Dry run: {} files would be archived", label, file_count);
+                    log::info!(
+                        "[{}] Dry run: {} files would be archived",
+                        label,
+                        file_count
+                    );
                 } else {
-                    log::info!("[{}] {} files archived ({})", label, file_count, format_size(bytes));
+                    log::info!(
+                        "[{}] {} files archived ({})",
+                        label,
+                        file_count,
+                        format_size(bytes)
+                    );
                 }
                 backed_up += 1;
             }
@@ -74,9 +90,15 @@ pub fn run(args: RunArgs) -> Result<()> {
     }
 
     if args.dry_run {
-        println!("\nDry run: {} would update, {} up to date, {} error(s)", backed_up, skipped, failed);
+        println!(
+            "\nDry run: {} would update, {} up to date, {} error(s)",
+            backed_up, skipped, failed
+        );
     } else {
-        println!("\nDone: {} backed up, {} skipped, {} error(s)", backed_up, skipped, failed);
+        println!(
+            "\nDone: {} backed up, {} skipped, {} error(s)",
+            backed_up, skipped, failed
+        );
     }
 
     Ok(())
@@ -119,22 +141,37 @@ fn backup_source(
     let total_bytes: u64 = files.iter().map(|f| f.size).sum();
 
     if dry_run {
-        return Ok(BackupResult::Updated { file_count: files.len(), bytes: total_bytes });
+        return Ok(BackupResult::Updated {
+            file_count: files.len(),
+            bytes: total_bytes,
+        });
     }
 
-    archive_files(&files, &snapshot_path, source.follow_symlinks.unwrap_or(false), &source.name)?;
+    archive_files(
+        &files,
+        &snapshot_path,
+        source.follow_symlinks.unwrap_or(false),
+        &source.name,
+    )?;
 
     let new_manifest = Manifest {
         source_id: source.id.clone(),
         last_run_at: Some(OffsetDateTime::now_utc().format(&Rfc3339)?),
         files: files
             .iter()
-            .map(|f| FileEntry { path: f.rel_path.clone(), mtime: f.mtime, size: f.size })
+            .map(|f| FileEntry {
+                path: f.rel_path.clone(),
+                mtime: f.mtime,
+                size: f.size,
+            })
             .collect(),
     };
     new_manifest.save(&manifest_path)?;
 
-    Ok(BackupResult::Updated { file_count: files.len(), bytes: total_bytes })
+    Ok(BackupResult::Updated {
+        file_count: files.len(),
+        bytes: total_bytes,
+    })
 }
 
 fn walk_source(source: &Source, excludes: &GlobSet) -> Result<Vec<FileInfo>> {
@@ -149,7 +186,10 @@ fn walk_source(source: &Source, excludes: &GlobSet) -> Result<Vec<FileInfo>> {
             if entry.depth() == 0 {
                 return true;
             }
-            let rel = entry.path().strip_prefix(source_path).unwrap_or(entry.path());
+            let rel = entry
+                .path()
+                .strip_prefix(source_path)
+                .unwrap_or(entry.path());
             !excludes.is_match(rel)
         });
 
@@ -175,23 +215,37 @@ fn walk_source(source: &Source, excludes: &GlobSet) -> Result<Vec<FileInfo>> {
             .unwrap_or(0);
         let size = metadata.len();
 
-        files.push(FileInfo { abs_path, rel_path, mtime, size });
+        files.push(FileInfo {
+            abs_path,
+            rel_path,
+            mtime,
+            size,
+        });
     }
 
     Ok(files)
 }
 
-fn archive_files(files: &[FileInfo], snapshot_path: &Path, follow_symlinks: bool, label: &str) -> Result<()> {
+fn archive_files(
+    files: &[FileInfo],
+    snapshot_path: &Path,
+    follow_symlinks: bool,
+    label: &str,
+) -> Result<()> {
     let tmp_path = snapshot_path.with_extension("tmp");
     let total = files.len();
     // Report progress every 10% or every 200 files, whichever fires more often.
-    let checkpoint = if total == 0 { 1 } else { (total / 10).max(200).min(total) };
+    let checkpoint = if total == 0 {
+        1
+    } else {
+        (total / 10).max(200).min(total)
+    };
 
     let result = (|| -> Result<()> {
         let file = fs::File::create(&tmp_path)
             .with_context(|| format!("Creating snapshot at {}", tmp_path.display()))?;
-        let encoder = zstd::Encoder::new(BufWriter::new(file), 3)
-            .context("Initializing zstd encoder")?;
+        let encoder =
+            zstd::Encoder::new(BufWriter::new(file), 3).context("Initializing zstd encoder")?;
         let mut tar = tar::Builder::new(encoder);
         tar.follow_symlinks(follow_symlinks);
 
@@ -213,9 +267,8 @@ fn archive_files(files: &[FileInfo], snapshot_path: &Path, follow_symlinks: bool
         return result;
     }
 
-    fs::rename(&tmp_path, snapshot_path).with_context(|| {
-        format!("Moving snapshot into place at {}", snapshot_path.display())
-    })?;
+    fs::rename(&tmp_path, snapshot_path)
+        .with_context(|| format!("Moving snapshot into place at {}", snapshot_path.display()))?;
 
     Ok(())
 }
@@ -235,10 +288,8 @@ fn build_globset<'a>(patterns: impl Iterator<Item = &'a String>) -> Result<GlobS
         } else {
             p.to_string()
         };
-        builder.add(
-            Glob::new(&normalized)
-                .with_context(|| format!("Invalid glob pattern: {}", raw))?,
-        );
+        builder
+            .add(Glob::new(&normalized).with_context(|| format!("Invalid glob pattern: {}", raw))?);
     }
     Ok(builder.build()?)
 }
@@ -255,4 +306,3 @@ fn load_global_ignores() -> Result<Vec<String>> {
         .filter(|l| !l.is_empty() && !l.starts_with('#'))
         .collect())
 }
-

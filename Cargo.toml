@@ -2,6 +2,12 @@
 name = "jackup"
 version = "1.0.0"
 edition = "2024"
+description = "A simple backup tool for creating and restoring compressed file snapshots."
+license = "MIT"
+repository = "https://github.com/tjcccc/jackup"
+readme = "README.md"
+keywords = ["backup", "snapshot", "cli"]
+categories = ["command-line-utilities", "filesystem"]
 
 [dependencies]
 clap = { version = "4.5.47", features = ["derive"] }
@@ -10,7 +16,7 @@ anyhow = "1.0.99"
 time = { version = "0.3.43", features = ["formatting", "parsing"] }
 serde = { version = "1.0.219", features = ["derive"] }
 toml = "0.9.5"
-uuid = { version = "1.18.1", features = ["v4"]}
+uuid = { version = "1.18.1", features = ["v4"] }
 hostname = "0.4.1"
 home = "0.5.11"
 rustyline = "17.0.2"

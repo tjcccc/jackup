@@ -2,7 +2,7 @@ use clap::{ArgAction, Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[command(
-    name="jackup", 
+    name = "jackup",
     version,
     about = "A simple backup tool for creating and managing file snapshots",
     long_about = "jackup helps you back up your important files and directories.\n\n\
